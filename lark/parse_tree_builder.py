@@ -61,6 +61,13 @@ class PropagatePositions:
 
         return res
 
+class FilterDiscarded:
+    def __init__(self, node_builder):
+        self.node_builder = node_builder
+
+    def __call__(self, children):
+        filtered = [child for child in children if child is not None]
+        return self.node_builder(filtered)
 
 class ChildFilter:
     "Optimized childfilter (assumes no duplication in parse tree, so it's safe to change it)"
@@ -71,7 +78,7 @@ class ChildFilter:
     def __call__(self, children):
         filtered = []
         for i, to_expand in self.to_include:
-            if to_expand:
+            if to_expand and children[i] is not None:
                 if filtered:
                     filtered += children[i].children
                 else:   # Optimize for left-recursion
@@ -145,6 +152,7 @@ class ParseTreeBuilder:
 
             wrapper_chain = filter(None, [
                 self.propagate_positions and PropagatePositions,
+                FilterDiscarded,
                 (expand_single_child and not rule.alias) and ExpandSingleChild,
                 maybe_create_child_filter(rule.expansion, keep_all_tokens),
                 self.ambiguous and maybe_create_ambiguous_expander(self.tree_class, rule.expansion, keep_all_tokens),

@@ -12,6 +12,7 @@ from ..exceptions import ParseError
 from ..lexer import Token
 from ..utils import Str
 from ..grammar import NonTerminal, Terminal
+from ..visitors import Discard
 from .earley_common import Column, Derivation
 
 from collections import deque
@@ -282,7 +283,11 @@ class ForestToTreeVisitor(ForestVisitor):
 
     def visit_packed_node_out(self, node):
         if not node.parent.is_intermediate:
-            result = self.callbacks[node.rule](self.output_stack.pop())
+            try:
+                result = self.callbacks[node.rule](self.output_stack.pop())
+            except Discard:
+                result = None
+
             if self.output_stack:
                 self.output_stack[-1].append(result)
             else:
@@ -345,3 +350,4 @@ class ForestToAmbiguousTreeVisitor(ForestVisitor):
                 self.output_stack[-1].children.append(result)
             else:
                 self.result = result
+
